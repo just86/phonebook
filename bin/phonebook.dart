@@ -1,15 +1,19 @@
 // import 'package:phonebook/phonebook.dart' as phonebook;
 // import 'package:phonebook/phoneDB.dart' as db;
 import 'dart:io';
-import 'dart:math';
+//import 'dart:math';
 import 'dart:core';
 import 'dart:convert';
-
+import 'package:sqlite3/sqlite3.dart';
 
 void main(List<String> arguments) {
-  const pathToFile = 'lib/phoneDB.dart';
+  //const pathToFileTxt = 'lib/phoneDB.dart';
+  const pathToFileDB = 'lib/phonebookDB.db';
 
-  final fileDB = createFileDBSync(pathToFile);
+  //проверим наличие файла бд и создадим его, если его нет
+  print('Using sqlite3 ${sqlite3.version}');
+  final fileDB = createFileDBSync(pathToFileDB);
+  //final fileTxt = createFileTxtSync(pathToFileTxt);
   print('''
                       Телефонная книга города Мухосранск
   Выберите действие:
@@ -23,7 +27,6 @@ void main(List<String> arguments) {
   switch (numberFromConsole) {
     case 0:
       exit(1);
-      break;
     case 1:
       // bool weHaveAFile = false;
       //
@@ -52,12 +55,12 @@ void main(List<String> arguments) {
       // }
       break;
     case 2:
-     fileDB.writeAsStringSync('hi');
+      createWriteToDB(fileDB);
      break;
   }
 }
 
-Future<File> createFileDB(pathToFile) async {
+Future<File> createFileTxtSync(pathToFile) async {
   // final f = File(pathToFile);
   final file = await File(pathToFile);
   final fileExists = await file.exists();
@@ -77,10 +80,26 @@ File createFileDBSync(pathToFile) {
   final file = File(pathToFile);
   bool fileExists = file.existsSync();
 
-  if (!fileExists)
-    file.createSync(); // Create your file if it does not exists.
+  if (!fileExists){
+    final db = sqlite3.open(pathToFile);
+    List listOfColumn = [];
+    createTableOfDb(db);
+  }
 
   return file;
+}
+
+void createTableOfDb(db){
+  String partRequest = '';
+
+  db.execute('''
+    CREATE TABLE phonebook (
+      id INTEGER NOT NULL PRIMARY KEY,
+      name TEXT NOT NULL,
+      phone INTEGER NOT NULL
+    );
+  ''');
+  db.dispose();
 }
 
 //чтение строки из терминала и возврат числа
@@ -94,4 +113,13 @@ int parseline(String line) {
     answer = numberfromconsole;
   }
   return answer;
+}
+
+void createWriteToDB(fileDB) {
+  final stmt = fileDB.prepare('INSERT INTO phonebook (name, phone), VALUES (?, ?)');
+  stmt
+    ..execute(['The Beatles'], ['0660251525']);
+
+  // Dispose a statement when you don't need it anymore to clean up resources.
+  stmt.dispose();
 }

@@ -1,109 +1,107 @@
-// import 'package:phonebook/phonebook.dart' as phonebook;
-// import 'package:phonebook/phoneDB.dart' as db;
 import 'dart:io';
-//import 'dart:math';
+// import 'dart:math';
 import 'dart:core';
 import 'dart:convert';
-import 'package:sqlite3/sqlite3.dart';
+// import 'package:sqlite3/sqlite3.dart';
+import 'package:phonebook/db_constructor.dart';
 
 void main(List<String> arguments) {
-  //const pathToFileTxt = 'lib/phoneDB.dart';
-  const pathToFileDB = 'lib/phonebookDB.db';
 
-  //проверим наличие файла бд и создадим его, если его нет
-  print('Using sqlite3 ${sqlite3.version}');
-  final fileDB = createFileDBSync(pathToFileDB);
-  //final fileTxt = createFileTxtSync(pathToFileTxt);
+  const pathToFileDB = 'lib/phonebookDB.db';
+  String name = '';
+  int phone = 0;
+
   print('''
                       Телефонная книга города Мухосранск
   Выберите действие:
     1. Просмотр телефонной книги
     2. Создать абонента
+    3. Удалить абонента
     
     0. Выход
   ''');
 
-  int numberFromConsole = parseline(stdin.readLineSync(encoding: utf8) ?? "");
+  int numberFromConsole = parseLine(stdin.readLineSync(encoding: utf8) ?? "");
   switch (numberFromConsole) {
     case 0:
       exit(1);
     case 1:
-      // bool weHaveAFile = false;
-      //
-      // final isFile = File(pathToFile).exists();
-      // isFile.then((value) => weHaveAFile = true);
-      //
-      // if (!weHaveAFile) {
-      //  myFile = File(pathToFile).create();
-
-      // } else {
-      //   print(false);
-      // }
-      // Future<File> writeLog('String pdfData') async {
-      //   final file = await _localFile;
-      //   final fileExists = await file.exists();
-      //
-      //   if(!fileExists) await file.create(); // Create your file if it does not exists.
-      //
-      //   //write to file
-      //   var sink = file.openWrite(mode: FileMode.append);
-      //   file.writeAsString("OPERATION" + pdfData.toString());
-      //   await sink.flush();
-      //   await sink.close();
-      // return file;
-
-      // }
+      Subscribers Subscriber = Subscribers()
+        ..getPhones(pathToFileDB);
       break;
     case 2:
-      createWriteToDB(fileDB);
-     break;
+
+      while (true) {
+        print('''Введите ФИО абонента:''');
+        String nameConsole = stdin.readLineSync(encoding: utf8) ?? "";
+        if (nameConsole == '' || nameConsole.length < 3) {
+          print(
+              'Ошибка ввода: ФИО слишком короткое. ФИО должно быть не менее 3 символов');
+        }else{
+           name = nameConsole;
+          break;
+        }
+      }
+
+      while (true) {
+        print('''Введите номер телефона абонента в формате 380xxyyyyyyy''');
+        String phoneConsole = stdin.readLineSync(encoding: utf8) ?? "";
+        if (phoneConsole == '' || phoneConsole.length < 12) {
+          print(
+              'Ошибка ввода: длина номера телефона слишком короткая. Телефон содержит 12 символов');
+        }else{
+          int answer;
+          final numberfromconsole = int.tryParse(phoneConsole);
+
+          if (numberfromconsole == null) {
+            answer = -1;
+          } else {
+            answer = numberfromconsole;
+          }
+
+          phone = answer;
+          break;
+        }
+      }
+
+      Subscribers Subscriber = Subscribers()
+          ..pathToFile = pathToFileDB
+          ..name = name
+          ..phone = phone
+
+          ..createWriteToDB();
+      break;
+
+    case 3:
+      int idRecord = 0;
+      while (true) {
+        print('''Введите номер записи (id) для удаления абонента или 0 для отмены''');
+        String phoneConsole = stdin.readLineSync(encoding: utf8) ?? "";
+          final numberFromConsole = int.tryParse(phoneConsole);
+
+          if (numberFromConsole == null) {
+            print(
+                'Ошибка ввода: вы ввели не число. Для продолжения необходимо ввести число \n');
+          }else if(numberFromConsole == 0) {
+            exit(1);
+          }else {
+            idRecord = numberFromConsole;
+            Subscribers Subscriber = Subscribers()
+              ..pathToFile = pathToFileDB
+              ..idRecord = idRecord
+
+              ..deleteRecord();
+
+            break;
+          }
+        }
+      break;
+
   }
-}
-
-Future<File> createFileTxtSync(pathToFile) async {
-  // final f = File(pathToFile);
-  final file = await File(pathToFile);
-  final fileExists = await file.exists();
-
-  if (!fileExists)
-    await file.create(); // Create your file if it does not exists.
-
-  //write to file
-  // var sink = file.openWrite(mode: FileMode.append);
-  // file.writeAsString("OPERATION WRITE");
-  // await sink.flush();
-  // await sink.close();
-  return file;
-}
-
-File createFileDBSync(pathToFile) {
-  final file = File(pathToFile);
-  bool fileExists = file.existsSync();
-
-  if (!fileExists){
-    final db = sqlite3.open(pathToFile);
-    List listOfColumn = [];
-    createTableOfDb(db);
-  }
-
-  return file;
-}
-
-void createTableOfDb(db){
-  String partRequest = '';
-
-  db.execute('''
-    CREATE TABLE phonebook (
-      id INTEGER NOT NULL PRIMARY KEY,
-      name TEXT NOT NULL,
-      phone INTEGER NOT NULL
-    );
-  ''');
-  db.dispose();
 }
 
 //чтение строки из терминала и возврат числа
-int parseline(String line) {
+int parseLine(String line) {
   int answer;
   final numberfromconsole = int.tryParse(line);
 
@@ -113,13 +111,4 @@ int parseline(String line) {
     answer = numberfromconsole;
   }
   return answer;
-}
-
-void createWriteToDB(fileDB) {
-  final stmt = fileDB.prepare('INSERT INTO phonebook (name, phone), VALUES (?, ?)');
-  stmt
-    ..execute(['The Beatles'], ['0660251525']);
-
-  // Dispose a statement when you don't need it anymore to clean up resources.
-  stmt.dispose();
 }
